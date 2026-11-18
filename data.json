@@ -1,0 +1,13 @@
+{
+  "version": "5.3",
+  "updated_at": "2026-11-18 16:53:00",
+  "election_date": "2026-11-28T08:00:00+08:00",
+  "legal_status": "法定民調封關期間（依據選罷法第53條，鎖定 2026/11/17 前公開基準與中選會歷屆 OLS 權重）",
+  "model_parameters": {
+    "alpha_baseline_weight": 0.584,
+    "structural_sigma": 2.85,
+    "urban_turnout_base": 64.2,
+    "non_urban_turnout_base": 68.5
+  },
+  "environment_weather_scenario": "clear_cool"
+}
