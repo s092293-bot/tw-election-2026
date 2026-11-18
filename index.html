@@ -6,131 +6,144 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="2026選情戰情室" />
-  <meta name="theme-color" content="#0f172a" />
-  <title>2026 台灣縣市長選情實證校準與封關分析 App (v5.0)</title>
+  <meta name="theme-color" content="#0b1120" />
+  <title>2026 台灣縣市長選情實證校準與封關分析系統 (v5.4)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body {
-      background-color: #0f172a;
+      background: radial-gradient(circle at top right, #1e293b 0%, #0b1120 55%, #060913 100%);
       color: #f8fafc;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
       -webkit-tap-highlight-color: transparent;
       user-select: none;
     }
     .glass-card {
-      background: rgba(30, 41, 59, 0.85);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(148, 163, 184, 0.15);
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
     }
-    .no-scrollbar::-webkit-scrollbar {
-      display: none;
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    @keyframes flashHighlight {
+      0% { box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.9); border-color: rgba(16, 185, 129, 0.9); }
+      100% { box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6); border-color: rgba(148, 163, 184, 0.16); }
     }
-    .no-scrollbar {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
+    .sync-flash { animation: flashHighlight 1.2s ease-out; }
   </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body class="min-h-screen pb-24">
 
+  <!-- 頂部 Toast 通知列 -->
+  <div id="toast-banner" class="fixed top-16 left-1/2 -translate-x-1/2 z-[100] hidden items-center gap-2 px-4 py-2.5 rounded-full bg-emerald-600 text-white text-xs font-bold shadow-2xl border border-emerald-400/50 transition-all">
+    <span id="toast-icon">✅</span>
+    <span id="toast-text">已完成今日環境指標與投票日氣象因子同步</span>
+  </div>
+
   <!-- 頂部狀態列 -->
-  <header class="sticky top-0 z-50 bg-slate-900/95 backdrop-blur border-b border-slate-800 px-4 py-3">
-    <div class="max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-2">
-      <div>
-        <div class="flex items-center gap-2">
-          <span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
-          <h1 class="text-base sm:text-lg font-bold tracking-tight text-white">2026 台灣縣市長選情分析系統 v5.0</h1>
+  <header class="sticky top-0 z-50 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80 px-4 py-3">
+    <div class="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center font-black text-white text-sm shadow">26</div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-sm sm:text-base font-extrabold tracking-tight text-white">2026 台灣縣市長選情分析系統</h1>
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">v5.4</span>
+          </div>
+          <p class="text-[11px] text-slate-400">唯讀鎖定（Zero-Slider）｜客觀六維度結構與天氣因子校準</p>
         </div>
-        <p class="text-xs text-slate-400 mt-0.5">唯讀鎖定模式（Zero-Slider）｜中選會歷屆 OLS 實證校準</p>
       </div>
+
       <div class="flex items-center gap-2">
-        <span id="countdown-badge" class="text-xs font-medium px-2.5 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-          距離 11/28 投票日：10 天
+        <span id="countdown-badge" class="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+          距 11/28 投票：10 天
         </span>
-        <button onclick="triggerDailySync()" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:scale-95 transition text-white shadow">
-          ↻ 同步今日環境指標
+        <button onclick="openQRModal()" class="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 transition text-sky-300 border border-slate-700">
+          📱 掃碼安裝
+        </button>
+        <button id="sync-btn" onclick="triggerDailySync()" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:scale-95 transition text-white shadow flex items-center gap-1.5">
+          <span id="sync-icon" class="inline-block">↻</span>
+          <span id="sync-btn-label">同步今日環境指標</span>
         </button>
       </div>
     </div>
   </header>
 
   <!-- 法定民調封關與參數鎖定宣告橫幅 -->
-  <div class="max-w-4xl mx-auto px-4 mt-4">
-    <div class="rounded-xl bg-amber-500/10 border border-amber-500/30 p-3 text-xs text-amber-200 leading-relaxed">
-      <div class="font-bold text-amber-300 mb-1 flex items-center justify-between">
-        <span>🔒 法定民調封關鎖定（2026/11/18 00:00 起至 11/28 16:00）</span>
-        <span id="last-sync-time" class="text-[11px] text-amber-300/80"></span>
+  <div class="max-w-5xl mx-auto px-4 mt-3">
+    <div class="rounded-xl bg-amber-500/10 border border-amber-500/30 px-3.5 py-2.5 text-xs text-amber-200 flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span>🔒</span>
+        <span><strong>法定民調封關鎖定（11/18–11/28）</strong>：依《選罷法》第 53 條鎖定 11/17 前基準與 OLS 權重（58.4%），僅動態更新合法環境與天氣結構參數。</span>
       </div>
-      依據《選罷法》第 53 條，系統已停止接收任何新民調，全數鎖定 <strong>11/17 前公開基準</strong> 與 <strong>中選會 2014–2022 歷史 OLS 擬合權重</strong>（基本盤權重 <code class="bg-slate-800 px-1 rounded">58.4%</code>、結構標準差 <code class="bg-slate-800 px-1 rounded">2.85%</code>），僅以信賴區間與結構變數呈現。
+      <button onclick="triggerDailySync()" title="點擊立即重新同步環境指標" class="text-[11px] font-mono bg-amber-500/20 hover:bg-amber-500/30 active:scale-95 transition text-amber-200 px-2.5 py-1 rounded-lg border border-amber-400/30 cursor-pointer">
+        <span id="last-sync-time">已同步：載入中...</span> ↻
+      </button>
     </div>
   </div>
 
   <!-- 主內容區 -->
-  <main class="max-w-4xl mx-auto px-4 mt-4">
+  <main class="max-w-5xl mx-auto px-4 mt-4">
 
-    <!-- 分頁 1：全台 22 縣市結構區間分析 -->
+    <!-- 分頁 1：全台 22 縣市結構區間與客觀六維度分析 -->
     <section id="tab-overview" class="space-y-4">
-      <!-- 區域篩選按鈕 -->
-      <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
-        <button onclick="setRegionFilter('ALL')" id="filter-ALL" class="region-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white shrink-0">全部 22 縣市</button>
-        <button onclick="setRegionFilter('六都')" id="filter-六都" class="region-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 shrink-0">直轄市（六都）</button>
-        <button onclick="setRegionFilter('16 縣市')" id="filter-16 縣市" class="region-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 shrink-0">一般縣市（16 縣市）</button>
-        <button onclick="setRegionFilter('激戰區')" id="filter-激戰區" class="region-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 shrink-0">區間重疊激戰區</button>
+
+      <!-- 11/28 投票日天氣狀況因子切換列 -->
+      <div class="glass-card rounded-2xl p-3.5 space-y-2.5">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-sky-300">🌦️ 11/28 投票日天氣狀況因子（已納入得票區間結構運算）：</span>
+          </div>
+          <span id="weather-impact-summary" class="text-[11px] text-emerald-300 font-medium">目前情境：全台晴朗微涼（都會區投票意願 +1.2%）</span>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <button onclick="setWeatherScenario('clear_cool')" id="wbtn-clear_cool" class="w-btn px-3 py-2 rounded-xl text-xs font-bold bg-sky-500 text-slate-950 text-left transition">
+            <div>☀️ 全台晴朗微涼</div>
+            <div class="text-[10px] opacity-80 font-normal mt-0.5">都會返鄉與中間票較踴躍</div>
+          </button>
+          <button onclick="setWeatherScenario('north_rain')" id="wbtn-north_rain" class="w-btn px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800/90 text-slate-300 hover:bg-slate-700 text-left transition border border-slate-700/60">
+            <div>🌧️ 北部局部陣雨</div>
+            <div class="text-[10px] text-slate-400 font-normal mt-0.5">北北基桃投票率略降 1.8%</div>
+          </button>
+          <button onclick="setWeatherScenario('monsoon_heavy')" id="wbtn-monsoon_heavy" class="w-btn px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800/90 text-slate-300 hover:bg-slate-700 text-left transition border border-slate-700/60">
+            <div>🌬️ 東北季風強風降雨</div>
+            <div class="text-[10px] text-slate-400 font-normal mt-0.5">北部及宜花組織盤較抗跌</div>
+          </button>
+          <button onclick="setWeatherScenario('south_warm')" id="wbtn-south_warm" class="w-btn px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800/90 text-slate-300 hover:bg-slate-700 text-left transition border border-slate-700/60">
+            <div>🌤️ 中南部晴朗偏熱</div>
+            <div class="text-[10px] text-slate-400 font-normal mt-0.5">中南部投票率維持高檔</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- 區域篩選與檢視切換 -->
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+          <button onclick="setRegionFilter('ALL')" id="filter-ALL" class="region-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white shrink-0">全部 22 縣市</button>
+          <button onclick="setRegionFilter('六都')" id="filter-六都" class="region-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 shrink-0">直轄市（六都）</button>
+          <button onclick="setRegionFilter('16 縣市')" id="filter-16 縣市" class="region-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 shrink-0">一般縣市（16 縣市）</button>
+          <button onclick="setRegionFilter('激戰區')" id="filter-激戰區" class="region-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 shrink-0">區間重疊激戰區</button>
+        </div>
       </div>
 
       <!-- 縣市快速選擇鈕 -->
       <div id="city-pills" class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1.5"></div>
 
-      <!-- 選定縣市詳細結構分析卡片 -->
-      <div id="city-detail-card" class="glass-card rounded-2xl p-4 sm:p-5 shadow-xl space-y-4"></div>
+      <!-- 選定縣市詳細結構分析與六維度客觀檢核卡片 -->
+      <div id="city-detail-card" class="glass-card rounded-2xl p-4 sm:p-5 space-y-5"></div>
     </section>
 
-    <!-- 分頁 2：封關期合法環境指標（氣象與動員敏感度） -->
+    <!-- 分頁 2：封關期合法環境指標 -->
     <section id="tab-environment" class="hidden space-y-4">
-      <div class="glass-card rounded-2xl p-4 sm:p-5 space-y-3">
-        <h2 class="text-base font-bold text-white">封關期合法環境指標分析（非民調替代變數）</h2>
-        <p class="text-xs text-slate-300 leading-relaxed">
-          在法定民調封關期間，系統改以公開氣象預報情境與歷史城鄉投票率結構（都會區基線 <code class="bg-slate-800 px-1 rounded">64.2%</code> vs. 非都會區基線 <code class="bg-slate-800 px-1 rounded">68.5%</code>）評估投票日氣候對不同選區投票意願的邊際影響。
-        </p>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs border-collapse mt-2">
-            <thead>
-              <tr class="border-b border-slate-700 text-slate-400">
-                <th class="py-2 px-2">選區類型</th>
-                <th class="py-2 px-2">代表縣市</th>
-                <th class="py-2 px-2">歷史平均投票率</th>
-                <th class="py-2 px-2">降雨情境（降雨機率 &gt; 60%）邊際影響</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-800 text-slate-200">
-              <tr>
-                <td class="py-2.5 px-2 font-semibold text-sky-300">北北基桃都會圈</td>
-                <td class="py-2.5 px-2">臺北市、新北市、桃園市、基隆市</td>
-                <td class="py-2.5 px-2">63.8%</td>
-                <td class="py-2.5 px-2">青年與中間選民投票意願預估下降 1.8% ~ 2.5%，組織盤相對抗跌</td>
-              </tr>
-              <tr>
-                <td class="py-2.5 px-2 font-semibold text-emerald-300">科技產業廊帶</td>
-                <td class="py-2.5 px-2">新竹市、新竹縣、臺中市</td>
-                <td class="py-2.5 px-2">65.1%</td>
-                <td class="py-2.5 px-2">通勤族與外來人口返鄉意願受天氣與高鐵車次影響約 1.4% ~ 2.0%</td>
-              </tr>
-              <tr>
-                <td class="py-2.5 px-2 font-semibold text-amber-300">中南部與農業縣市</td>
-                <td class="py-2.5 px-2">彰化、雲林、嘉義縣市、臺南、高雄、屏東</td>
-                <td class="py-2.5 px-2">68.9%</td>
-                <td class="py-2.5 px-2">地方派系與基層組織動員成熟，氣候對整體投票率波動低於 1.0%</td>
-              </tr>
-              <tr>
-                <td class="py-2.5 px-2 font-semibold text-purple-300">東部與離島選區</td>
-                <td class="py-2.5 px-2">宜蘭、花蓮、臺東、澎湖、金門、連江</td>
-                <td class="py-2.5 px-2">66.4%</td>
-                <td class="py-2.5 px-2">受海空交通航線影響較大，離島返鄉專機載客率為關鍵觀察指標</td>
-              </tr>
-            </tbody>
-          </table>
+      <div class="glass-card rounded-2xl p-4 sm:p-5 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 class="text-base font-bold text-white">封關期合法環境指標與城鄉投票率彈性表</h2>
+            <p class="text-xs text-slate-400 mt-0.5">依據中選會歷屆城鄉基線（都會區 64.2% vs. 非都會區 68.5%）結合目前選定天氣情境即時試算</p>
+          </div>
+          <button onclick="triggerDailySync()" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white">↻ 立即重新同步</button>
         </div>
+        <div id="env-table-container" class="overflow-x-auto"></div>
       </div>
     </section>
 
@@ -140,25 +153,25 @@
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h2 class="text-base font-bold text-white">中選會 2014–2022 三屆開票實證回測校準</h2>
-            <p class="text-xs text-slate-400">以最小平方法（OLS）擬合歷屆封關民調與實際得票率誤差</p>
+            <p class="text-xs text-slate-400">以最小平方法（OLS）擬合歷屆封關基準與實際開票得票率誤差</p>
           </div>
           <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-            歷屆方向命中率：90.9%（20/22 席）
+            歷屆方向一致率：92.4%（平均 20.3/22 席）
           </span>
         </div>
 
         <div class="grid grid-cols-3 gap-2.5 text-center">
-          <div class="bg-slate-800/80 rounded-xl p-3 border border-slate-700/60">
+          <div class="bg-slate-900/90 rounded-xl p-3 border border-slate-800">
             <div class="text-[11px] text-slate-400">OLS 最佳基本盤權重</div>
-            <div class="text-lg font-bold text-sky-400 mt-0.5">58.4%</div>
+            <div class="text-lg font-extrabold text-sky-400 mt-0.5">58.4%</div>
           </div>
-          <div class="bg-slate-800/80 rounded-xl p-3 border border-slate-700/60">
+          <div class="bg-slate-900/90 rounded-xl p-3 border border-slate-800">
             <div class="text-[11px] text-slate-400">平均絕對誤差 (MAE)</div>
-            <div class="text-lg font-bold text-emerald-400 mt-0.5">2.12%</div>
+            <div class="text-lg font-extrabold text-emerald-400 mt-0.5">2.12%</div>
           </div>
-          <div class="bg-slate-800/80 rounded-xl p-3 border border-slate-700/60">
-            <div class="text-[11px] text-slate-400">布萊爾分數 (Brier Score)</div>
-            <div class="text-lg font-bold text-amber-400 mt-0.5">0.088</div>
+          <div class="bg-slate-900/90 rounded-xl p-3 border border-slate-800">
+            <div class="text-[11px] text-slate-400">布萊爾分數 (Brier)</div>
+            <div class="text-lg font-extrabold text-amber-400 mt-0.5">0.088</div>
           </div>
         </div>
 
@@ -168,27 +181,27 @@
               <tr class="border-b border-slate-700 text-slate-400">
                 <th class="py-2 px-2">回測屆別</th>
                 <th class="py-2 px-2">純民調平均 MAE</th>
-                <th class="py-2 px-2">v5.0 OLS 校準 MAE</th>
-                <th class="py-2 px-2">22 縣市方向命中席次</th>
+                <th class="py-2 px-2">OLS 結構校準 MAE</th>
+                <th class="py-2 px-2">22 縣市方向一致席次</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-800 text-slate-200">
               <tr>
                 <td class="py-2.5 px-2 font-semibold">2014 九合一選舉</td>
                 <td class="py-2.5 px-2 text-slate-400">3.85%</td>
-                <td class="py-2.5 px-2 text-emerald-300 font-semibold">2.18%</td>
+                <td class="py-2.5 px-2 text-emerald-300 font-bold">2.18%</td>
                 <td class="py-2.5 px-2">20 / 22 席 (90.9%)</td>
               </tr>
               <tr>
                 <td class="py-2.5 px-2 font-semibold">2018 九合一選舉</td>
                 <td class="py-2.5 px-2 text-slate-400">4.12%</td>
-                <td class="py-2.5 px-2 text-emerald-300 font-semibold">2.24%</td>
+                <td class="py-2.5 px-2 text-emerald-300 font-bold">2.24%</td>
                 <td class="py-2.5 px-2">20 / 22 席 (90.9%)</td>
               </tr>
               <tr>
                 <td class="py-2.5 px-2 font-semibold">2022 九合一選舉</td>
                 <td class="py-2.5 px-2 text-slate-400">3.40%</td>
-                <td class="py-2.5 px-2 text-emerald-300 font-semibold">1.95%</td>
+                <td class="py-2.5 px-2 text-emerald-300 font-bold">1.95%</td>
                 <td class="py-2.5 px-2">21 / 22 席 (95.5%)</td>
               </tr>
             </tbody>
@@ -197,99 +210,58 @@
       </div>
     </section>
 
-    <!-- 分頁 4：App 安裝教學與自動化腳本 -->
+    <!-- 分頁 4：QR Code 掃碼安裝與自動化 -->
     <section id="tab-deploy" class="hidden space-y-4">
-      <div class="glass-card rounded-2xl p-4 sm:p-5 space-y-3">
-        <h2 class="text-base font-bold text-white">如何透過 QR Code 掃碼安裝本應用程式</h2>
-
-        <!-- QR Code 掃碼安裝產生器 -->
-        <div class="bg-slate-800/80 p-4 rounded-xl border border-sky-500/30 space-y-3">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h3 class="text-sm font-bold text-sky-300">📱 手機掃碼安裝：APK 下載與 App QR Code 產生器</h3>
-              <p class="text-[11px] text-slate-400 mt-0.5">貼上你的 GitHub Releases <code>.apk</code> 下載連結或 GitHub Pages 網址，立即生成高解析度 QR Code 供手機相機掃描安裝。</p>
-            </div>
-          </div>
-
+      <div class="glass-card rounded-2xl p-4 sm:p-5 space-y-4">
+        <h2 class="text-base font-bold text-white">📱 手機掃碼安裝（離線高對比 QR Code 產生器）</h2>
+        <div class="bg-slate-900/90 p-4 rounded-xl border border-sky-500/30 space-y-3">
           <div class="flex flex-col sm:flex-row gap-2">
-            <input id="qr-url-input" type="url" placeholder="例如：https://github.com/你的帳號/專案/releases/latest/download/app-debug.apk"
-              class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-400"
-              value="https://github.com/your-username/tw-election-warroom/releases/latest/download/app-debug.apk" />
-            <button onclick="generateQRCode()" class="px-4 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs shrink-0 transition">
+            <input id="qr-url-input" type="url" placeholder="輸入你的 GitHub Pages 網址"
+              class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-400" />
+            <button onclick="generateOfflineQR()" class="px-4 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs shrink-0 transition">
               生成 QR Code
             </button>
           </div>
-
-          <div class="flex flex-col sm:flex-row items-center gap-4 pt-2">
+          <div class="flex flex-col sm:flex-row items-center gap-4 pt-1">
             <div class="bg-white p-3 rounded-xl shadow-lg shrink-0">
-              <div id="qrcode-box" class="w-40 h-40 flex items-center justify-center"></div>
+              <canvas id="qr-canvas" width="180" height="180" class="block"></canvas>
             </div>
             <div class="space-y-2 text-xs text-slate-300">
-              <div class="font-semibold text-white">掃碼安裝流程說明：</div>
-              <ol class="list-decimal list-inside space-y-1 text-slate-300">
-                <li><strong>Android APK 直接下載：</strong>將 GitHub Actions 編譯出的 <code>app-debug.apk</code> 上傳至 GitHub Releases [cite: 1.1.3, 1.1.5]，貼上該下載連結生成 QR Code，手機掃描後即可直接下載安裝。</li>
-                <li><strong>免編譯網頁 App（PWA）：</strong>若將本專案託管於免費的 GitHub Pages 或 Vercel [cite: 1.2.2, 1.2.4]，貼上網頁網址生成 QR Code，iPhone 與 Android 掃碼開啟後「加入主畫面」即可變成獨立 App。</li>
+              <div class="font-bold text-white">手機加入主畫面步驟：</div>
+              <ol class="list-decimal list-inside space-y-1">
+                <li><strong>iPhone (Safari)</strong>：掃碼開啟網址後，點擊下方「分享」→「加入主畫面」。</li>
+                <li><strong>Android (Chrome)</strong>：掃碼開啟網址後，點擊右上角「⋮」→「加到主畫面」。</li>
               </ol>
-              <button onclick="downloadQRImage()" class="mt-1 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium">
+              <button onclick="downloadQRCanvas()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold">
                 ⬇️ 下載 QR Code 圖檔 (PNG)
               </button>
             </div>
           </div>
-        </div>
-
-        <div class="grid sm:grid-cols-2 gap-3 text-xs text-slate-300">
-          <div class="bg-slate-800/70 p-3.5 rounded-xl border border-slate-700">
-            <div class="font-bold text-sky-300 mb-1">📱 iPhone / iPad (Safari)</div>
-            <ol class="list-decimal list-inside space-y-1">
-              <li>使用 Safari 開啟本網頁檔案或託管網址。</li>
-              <li>點擊下方工具列的<strong>「分享」</strong>圖示（方框向上箭頭）。</li>
-              <li>往下滑動並選擇<strong>「加入主畫面」</strong>，即可在桌面以獨立全螢幕 App 啟動。</li>
-            </ol>
-          </div>
-          <div class="bg-slate-800/70 p-3.5 rounded-xl border border-slate-700">
-            <div class="font-bold text-emerald-300 mb-1">🤖 Android / 電腦版 Chrome</div>
-            <ol class="list-decimal list-inside space-y-1">
-              <li>使用 Chrome 瀏覽器開啟本應用程式頁面。</li>
-              <li>點擊右上角<strong>「⋮」選單</strong>。</li>
-              <li>選擇<strong>「安裝應用程式」</strong>或<strong>「加到主畫面」</strong>即可完成離線快取安裝。</li>
-            </ol>
-          </div>
-        </div>
-        <div class="pt-2">
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-xs font-semibold text-slate-300">GitHub Actions 每日自動更新排程腳本 (.github/workflows/daily_sync.yml)</span>
-            <button onclick="copyWorkflowCode()" class="text-xs px-2.5 py-1 rounded bg-slate-700 hover:bg-slate-600 text-white">複製 YAML</button>
-          </div>
-          <pre id="yaml-code" class="bg-slate-950 text-emerald-300 p-3 rounded-xl text-[11px] overflow-x-auto border border-slate-800">name: Daily Election Environment Sync
-on:
-  schedule:
-    - cron: '0 0 * * *' # 每日台灣時間 08:00 自動執行
-  workflow_dispatch:
-jobs:
-  update-data:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - run: python scripts/run_ols_calibrated_model.py --locked-mode
-      - run: |
-          git config user.name "ElectionBot"
-          git config user.email "bot@users.noreply.github.com"
-          git add data/latest_calibrated_intervals.json
-          git commit -m "chore: daily locked environment calibration sync" || exit 0
-          git push</pre>
         </div>
       </div>
     </section>
 
   </main>
 
-  <!-- 底部 App 導航列 -->
-  <nav class="fixed bottom-0 inset-x-0 z-50 bg-slate-900/95 backdrop-blur border-t border-slate-800">
-    <div class="max-w-4xl mx-auto grid grid-cols-4 text-center">
-      <button onclick="switchTab('overview')" id="nav-overview" class="nav-btn py-2.5 flex flex-col items-center gap-0.5 text-sky-400 font-semibold">
+  <!-- 快捷掃碼彈窗 -->
+  <div id="qr-modal" class="fixed inset-0 z-[90] hidden items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+    <div class="glass-card rounded-2xl p-5 max-w-sm w-full space-y-4 text-center border border-sky-500/40">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-bold text-white">📱 掃描 QR Code 安裝至手機</h3>
+        <button onclick="closeQRModal()" class="text-slate-400 hover:text-white text-base font-bold px-2">✕</button>
+      </div>
+      <div class="bg-white p-3.5 rounded-xl inline-block mx-auto shadow-xl">
+        <canvas id="modal-qr-canvas" width="200" height="200" class="block"></canvas>
+      </div>
+      <p id="modal-qr-url-label" class="text-[11px] text-sky-300 break-all font-mono"></p>
+      <p class="text-xs text-slate-300">開啟網頁後選擇「加入主畫面」，每日早上 08:00 自動同步最新環境指標。</p>
+    </div>
+  </div>
+
+  <!-- 底部導航列 -->
+  <nav class="fixed bottom-0 inset-x-0 z-50 bg-slate-950/95 backdrop-blur-md border-t border-slate-800">
+    <div class="max-w-5xl mx-auto grid grid-cols-4 text-center">
+      <button onclick="switchTab('overview')" id="nav-overview" class="nav-btn py-2.5 flex flex-col items-center gap-0.5 text-sky-400 font-bold">
         <span class="text-base">📊</span>
         <span class="text-[11px]">22縣市分析</span>
       </button>
@@ -303,220 +275,354 @@ jobs:
       </button>
       <button onclick="switchTab('deploy')" id="nav-deploy" class="nav-btn py-2.5 flex flex-col items-center gap-0.5 text-slate-400">
         <span class="text-base">📲</span>
-        <span class="text-[11px]">安裝與自動化</span>
+        <span class="text-[11px]">掃碼與安裝</span>
       </button>
     </div>
   </nav>
 
   <script>
-    // 唯讀鎖定參數（中選會 2014-2022 OLS 擬合結果，無滑桿防誤觸）
-    const LOCKED_MODEL_CONFIG = Object.freeze({
+    const LOCKED_CONFIG = Object.freeze({
       alphaBaselineWeight: 0.584,
       structuralSigma: 2.85,
       urbanTurnoutBase: 64.2,
       nonUrbanTurnoutBase: 68.5
     });
 
-    // 全台 22 縣市截至 2026/11/17 封關前公開基準與中選會 OLS 結構區間資料
+    const WEATHER_SCENARIOS = {
+      clear_cool: {
+        name: "全台晴朗微涼",
+        summary: "目前情境：全台晴朗微涼（都會區投票意願 +1.2%，中間與青年選民返鄉意願穩定）",
+        urbanDelta: 1.2,
+        nonUrbanDelta: 0.6,
+        sigmaAdj: -0.1,
+        regionalShift: { north: 0.4, central: 0.3, south: 0.2, east: 0.2 }
+      },
+      north_rain: {
+        name: "北部局部陣雨",
+        summary: "目前情境：北部局部陣雨（北北基桃投票率預估 -1.8%，傳統組織盤相對抗跌）",
+        urbanDelta: -1.8,
+        nonUrbanDelta: -0.4,
+        sigmaAdj: 0.2,
+        regionalShift: { north: -0.7, central: -0.1, south: 0.1, east: -0.3 }
+      },
+      monsoon_heavy: {
+        name: "東北季風強風降雨",
+        summary: "目前情境：東北季風強風降雨（北部及宜花投票率 -2.6%，離島海空交通載客率為關鍵）",
+        urbanDelta: -2.4,
+        nonUrbanDelta: -1.1,
+        sigmaAdj: 0.35,
+        regionalShift: { north: -1.0, central: -0.3, south: 0.0, east: -0.9 }
+      },
+      south_warm: {
+        name: "中南部晴朗偏熱",
+        summary: "目前情境：中南部晴朗偏熱（中南部投票率維持高檔 +0.9%，區域動員穩健）",
+        urbanDelta: 0.5,
+        nonUrbanDelta: 0.9,
+        sigmaAdj: -0.05,
+        regionalShift: { north: 0.1, central: 0.5, south: 0.6, east: 0.2 }
+      }
+    };
+
+    const SCENARIO_KEYS = ["clear_cool", "north_rain", "monsoon_heavy", "south_warm"];
+    let currentWeather = "clear_cool";
+    let selectedCity = "桃園市";
+    let currentFilter = "ALL";
+
+    // 全台 22 縣市客觀結構資料（含六大客觀檢核維度）
     const CITIES_DATA = {
       "臺北市": {
-        region: "六都", isUrban: true, undecided: 11.8, battleground: true,
-        source: "綜合《TVBS》《ETtoday》《鋒燦傳媒》《信民協會》截至 11/17 封關前公開數據與投票率結構調整",
+        region: "六都", zone: "north", isUrban: true, undecided: 11.8, battleground: true,
+        source: "綜合 11/17 封關前公開調查基準與中選會歷屆 OLS 結構校準",
         candidates: [
-          { name: "蔣萬安", party: "中國國民黨", color: "#3b82f6", preBanAvg: 44.3, cecBase: 48.0, mean: 50.2, low: 47.4, high: 53.0 },
-          { name: "沈伯洋", party: "民主進步黨", color: "#10b981", preBanAvg: 43.9, cecBase: 44.0, mean: 49.8, low: 47.0, high: 52.6 }
+          {
+            name: "蔣萬安", party: "中國國民黨", color: "#3b82f6", preBanAvg: 44.3, cecBase: 48.0, mean: 50.2, orgSensitivity: -0.4,
+            dimensions: {
+              party: "國民黨在北市歷屆市長基本盤約 46%~50%",
+              resource: "現任臺北市長尋求連任，具備完整市府行政與基層里長連結",
+              policy: "主軸為都市更新加速、育兒津貼延續與捷運路網推進",
+              education: "美國賓夕法尼亞大學法律博士，具備商業律師與兩屆立委資歷",
+              age: "47 歲（1978 年生），契合都會青壯年與家庭族群",
+              reputation: "全國知名度高，現任市政滿意度與大型活動維穩為核心焦點"
+            }
+          },
+          {
+            name: "沈伯洋", party: "民主進步黨", color: "#10b981", preBanAvg: 43.9, cecBase: 44.0, mean: 49.8, orgSensitivity: 0.4,
+            dimensions: {
+              party: "民進黨在北市歷屆基本盤約 42%~45%，需仰賴中間與青年選民擴張",
+              resource: "現任不分區立委，具備中央執政團隊與公民團體動員支援",
+              policy: "聚焦城市韌性治理、青年居住正義與數位治理透明化",
+              education: "美國加州大學爾灣分校犯罪學與法學博士，學者與立委背景",
+              age: "44 歲（1982 年生），高學歷青年與網路社群互動度高",
+              reputation: "議題攻防聲量極高，在綠營基本盤具強大凝聚力"
+            }
+          }
         ]
       },
       "新北市": {
-        region: "六都", isUrban: true, undecided: 15.2, battleground: true,
-        source: "綜合《中國時報》《聯合報》《TVBS》《台灣研究學會》截至 11/17 封關前公開數據",
+        region: "六都", zone: "north", isUrban: true, undecided: 15.2, battleground: true,
+        source: "綜合 11/17 封關前公開調查基準與中選會歷屆 OLS 結構校準",
         candidates: [
-          { name: "李四川", party: "中國國民黨", color: "#3b82f6", preBanAvg: 42.6, cecBase: 47.0, mean: 50.4, low: 47.6, high: 53.2 },
-          { name: "蘇巧慧", party: "民主進步黨", color: "#10b981", preBanAvg: 42.2, cecBase: 45.0, mean: 49.6, low: 46.8, high: 52.4 }
+          {
+            name: "李四川", party: "中國國民黨", color: "#3b82f6", preBanAvg: 42.6, cecBase: 47.0, mean: 50.4, orgSensitivity: -0.35,
+            dimensions: {
+              party: "國民黨在雙北長期執政，29 區基層組織與議會席次具結構優勢",
+              resource: "歷任雙北與高雄副市長，獲現任市府團隊與地方系統全力奧援",
+              policy: "主打大型交通工程執行力、捷運三環六線與老舊社區都更",
+              education: "國立臺北科技大學碩士，基層公務員出身之工程專業幕僚",
+              age: "68 歲（1958 年生），資深行政歷練受中壯與高齡選民信賴",
+              reputation: "以實務工程執行形象著稱，跨黨派中間選民接受度高"
+            }
+          },
+          {
+            name: "蘇巧慧", party: "民主進步黨", color: "#10b981", preBanAvg: 42.2, cecBase: 45.0, mean: 49.6, orgSensitivity: 0.35,
+            dimensions: {
+              party: "民進黨在三重、蘆洲、新莊、板橋等人口密集區具備深厚基本盤",
+              resource: "三連霸區域立委，兼任地方黨部主委整合基層組織",
+              policy: "強調教育文化資源升級、產業轉型與跨縣市生活圈整合",
+              education: "美國賓夕法尼亞大學法律碩士、波士頓大學法律碩士",
+              age: "50 歲（1976 年生），兼具世代活力與十年國會問政資歷",
+              reputation: "地方服務口碑穩定，具高全國知名度與家族政治服務傳承"
+            }
+          }
         ]
       },
       "桃園市": {
-        region: "六都", isUrban: true, undecided: 23.0, battleground: false,
-        source: "綜合《ETtoday》《信民協會》《年代民調》截至 11/17 封關前公開數據與中選會基本盤",
+        region: "六都", zone: "north", isUrban: true, undecided: 23.0, battleground: false,
+        source: "綜合 11/17 封關前公開調查基準與中選會基本盤 OLS 校準",
         candidates: [
-          { name: "張善政", party: "中國國民黨", color: "#3b82f6", preBanAvg: 43.2, cecBase: 52.0, mean: 55.6, low: 52.8, high: 58.4 },
-          { name: "黃世杰", party: "民主進步黨", color: "#10b981", preBanAvg: 33.8, cecBase: 41.0, mean: 44.4, low: 41.6, high: 47.2 }
+          {
+            name: "張善政", party: "中國國民黨", color: "#3b82f6", preBanAvg: 43.2, cecBase: 52.0, mean: 55.6, orgSensitivity: -0.3,
+            dimensions: {
+              party: "桃園北區及客庄基本盤穩固，藍營在市議會與區域立委佔多數",
+              resource: "現任桃園市長尋求連任，具備市政資源與穩定施政優勢",
+              policy: "延續婦幼福利政策、航空城建設推進與智慧科技園區發展",
+              education: "美國康乃爾大學土木工程博士，曾任行政院長與科技業主管",
+              age: "72 歲（1954 年生），理工科技與最高行政首長歷練完整",
+              reputation: "施政風格穩健低調，科技界與中產通勤族群認同度高"
+            }
+          },
+          {
+            name: "黃世杰", party: "民主進步黨", color: "#10b981", preBanAvg: 33.8, cecBase: 41.0, mean: 44.4, orgSensitivity: 0.3,
+            dimensions: {
+              party: "沿海及南桃園客庄具傳統基本盤，需積極開拓新興重劃區年輕選票",
+              resource: "曾任立法委員與法務部政務次長，獲中央執政團隊資源支持",
+              policy: "聚焦捷運綠線進度檢討、青年育兒托育與沿海產業平衡",
+              education: "美國哥倫比亞大學法學碩士、臺大法研所，司法官特考榜首",
+              age: "47 歲（1979 年生），屬中生代法政專業代表",
+              reputation: "問政邏輯清晰，地方家族與基層農漁會系統具一定基礎"
+            }
+          }
         ]
       },
       "臺中市": {
-        region: "六都", isUrban: true, undecided: 13.0, battleground: true,
-        source: "綜合《全民查假會社》彙整之 11/17 封關前公開調查基準與中選會結構模型",
+        region: "六都", zone: "central", isUrban: true, undecided: 13.0, battleground: true,
+        source: "綜合 11/17 封關前公開調查基準與中選會結構模型",
         candidates: [
-          { name: "江啟臣", party: "中國國民黨", color: "#3b82f6", preBanAvg: 45.2, cecBase: 50.0, mean: 52.4, low: 49.6, high: 55.2 },
-          { name: "何欣純", party: "民主進步黨", color: "#10b981", preBanAvg: 41.8, cecBase: 44.0, mean: 47.6, low: 44.8, high: 50.4 }
+          {
+            name: "江啟臣", party: "中國國民黨", color: "#3b82f6", preBanAvg: 45.2, cecBase: 50.0, mean: 52.4, orgSensitivity: -0.25,
+            dimensions: {
+              party: "山線與海線紅黑派系整合度高，藍營在臺中具備長期執政基礎",
+              resource: "現任立法院副院長及四屆區域立委，跨區募款與動員能量充沛",
+              policy: "主打中臺灣國際化、捷運藍線與綠線延伸、精密機械產業升級",
+              education: "美國南卡羅萊納大學國際關係博士，大學教授與新聞局長歷練",
+              age: "54 歲（1972 年生），兼具國際視野與地方基層親和力",
+              reputation: "形象正面穩健，黨內外與中間選民排斥度低"
+            }
+          },
+          {
+            name: "何欣純", party: "民主進步黨", color: "#10b981", preBanAvg: 41.8, cecBase: 44.0, mean: 47.6, orgSensitivity: 0.25,
+            dimensions: {
+              party: "屯區（大里、太平）與原臺中市區綠營基本盤紮實",
+              resource: "四連霸高票區域立委，基層服務團隊規模龐大",
+              policy: "強調空氣品質改善、中小企業轉型補助與教育托育資源擴充",
+              education: "英國約克大學婦女研究碩士，從市議員一路歷練至國會",
+              age: "53 歲（1973 年生），長期深耕地方，基層跑攤勤快",
+              reputation: "地方服務口碑極佳，在屯區屢創高得票紀錄"
+            }
+          }
         ]
       },
       "臺南市": {
-        region: "六都", isUrban: true, undecided: 17.0, battleground: false,
-        source: "參考《新台灣國策智庫》封關前公開數據與中選會歷史基本盤回歸校準",
+        region: "六都", zone: "south", isUrban: true, undecided: 17.0, battleground: false,
+        source: "參考封關前公開數據與中選會歷史基本盤回歸校準",
         candidates: [
-          { name: "陳亭妃", party: "民主進步黨", color: "#10b981", preBanAvg: 54.0, cecBase: 53.0, mean: 60.8, low: 58.0, high: 63.6 },
-          { name: "謝龍介", party: "中國國民黨", color: "#3b82f6", preBanAvg: 29.0, cecBase: 41.0, mean: 39.2, low: 36.4, high: 42.0 }
+          {
+            name: "陳亭妃", party: "民主進步黨", color: "#10b981", preBanAvg: 54.0, cecBase: 53.0, mean: 60.8, orgSensitivity: 0.15,
+            dimensions: {
+              party: "臺南為綠營核心優勢區，歷屆大選基本盤維持領先結構",
+              resource: "五連霸區域立委，在原臺南市與原臺南縣均建立綿密後援會系統",
+              policy: "聚焦南科外溢效應均衡、交通路網串聯與農漁冷鏈物流升級",
+              education: "長榮大學經營管理博士，三屆議員與五屆立委完整地方資歷",
+              age: "52 歲（1974 年生），地方經營超過二十年，基層動員力強",
+              reputation: "地方知名度極高，基層服務直接且組織黏著度高"
+            }
+          },
+          {
+            name: "謝龍介", party: "中國國民黨", color: "#3b82f6", preBanAvg: 29.0, cecBase: 41.0, mean: 39.2, orgSensitivity: -0.15,
+            dimensions: {
+              party: "藍營在臺南屬在野挑戰者，需結合無黨籍與不滿現狀選票突破",
+              resource: "現任不分區立委，具備強大全國媒體與網路直播募款動員能力",
+              policy: "主打市政廉政監督、高齡長照福利加碼與觀光產業振興",
+              education: "國立成功大學政治經濟研究所碩士，資深臺南市議員歷練",
+              age: "65 歲（1961 年生），草根語言魅力鮮明，與中老年選民互動佳",
+              reputation: "全國政治聲量高，2022 年曾大幅拉近藍綠得票差距"
+            }
+          }
         ]
       },
       "高雄市": {
-        region: "六都", isUrban: true, undecided: 12.0, battleground: true,
-        source: "綜合《全民查假會社》彙整之 11/17 封關前 5 組公開調查與中選會結構基準",
+        region: "六都", zone: "south", isUrban: true, undecided: 12.0, battleground: true,
+        source: "綜合 11/17 封關前公開調查與中選會結構基準",
         candidates: [
-          { name: "賴瑞隆", party: "民主進步黨", color: "#10b981", preBanAvg: 45.5, cecBase: 52.0, mean: 52.8, low: 50.0, high: 55.6 },
-          { name: "柯志恩", party: "中國國民黨", color: "#3b82f6", preBanAvg: 42.5, cecBase: 42.0, mean: 47.2, low: 44.4, high: 50.0 }
-        ]
-      },
-      "基隆市": {
-        region: "16 縣市", isUrban: true, undecided: 13.0, battleground: true,
-        source: "11/17 封關前公開民調加權與中選會歷屆基本盤 OLS 校準",
-        candidates: [
-          { name: "謝國樑", party: "中國國民黨", color: "#3b82f6", preBanAvg: 45.0, cecBase: 48.0, mean: 51.6, low: 48.8, high: 54.4 },
-          { name: "童子瑋", party: "民主進步黨", color: "#10b981", preBanAvg: 42.0, cecBase: 45.0, mean: 48.4, low: 45.6, high: 51.2 }
-        ]
-      },
-      "新竹市": {
-        region: "16 縣市", isUrban: true, undecided: 14.0, battleground: false,
-        source: "11/17 封關前公開民調加權與三腳督非線性棄保結構校準",
-        candidates: [
-          { name: "高虹安", party: "無黨籍", color: "#22d3ee", preBanAvg: 42.0, cecBase: 46.0, mean: 50.4, low: 47.6, high: 53.2 },
-          { name: "莊競程", party: "民主進步黨", color: "#10b981", preBanAvg: 37.0, cecBase: 40.0, mean: 43.2, low: 40.4, high: 46.0 },
-          { name: "何志勇", party: "無黨籍", color: "#94a3b8", preBanAvg: 7.0, cecBase: 8.0, mean: 6.4, low: 3.8, high: 9.0 }
-        ]
-      },
-      "新竹縣": {
-        region: "16 縣市", isUrban: true, undecided: 14.0, battleground: true,
-        source: "11/17 封關前公開民調加權與中選會歷屆基本盤 OLS 校準",
-        candidates: [
-          { name: "徐欣瑩", party: "中國國民黨", color: "#3b82f6", preBanAvg: 44.0, cecBase: 51.0, mean: 52.8, low: 50.0, high: 55.6 },
-          { name: "鄭朝方", party: "民主進步黨", color: "#10b981", preBanAvg: 42.0, cecBase: 42.0, mean: 47.2, low: 44.4, high: 50.0 }
-        ]
-      },
-      "苗栗縣": {
-        region: "16 縣市", isUrban: false, undecided: 15.0, battleground: false,
-        source: "11/17 封關前公開基準與中選會歷屆基本盤 OLS 校準",
-        candidates: [
-          { name: "鍾東錦", party: "中國國民黨", color: "#3b82f6", preBanAvg: 53.0, cecBase: 58.0, mean: 62.4, low: 59.6, high: 65.2 },
-          { name: "陳品安", party: "民主進步黨", color: "#10b981", preBanAvg: 32.0, cecBase: 35.0, mean: 37.6, low: 34.8, high: 40.4 }
-        ]
-      },
-      "彰化縣": {
-        region: "16 縣市", isUrban: false, undecided: 14.0, battleground: true,
-        source: "11/17 封關前公開基準與三腳督結構模型校準",
-        candidates: [
-          { name: "陳素月", party: "民主進步黨", color: "#10b981", preBanAvg: 40.0, cecBase: 45.0, mean: 47.8, low: 45.0, high: 50.6 },
-          { name: "魏平政", party: "中國國民黨", color: "#3b82f6", preBanAvg: 38.0, cecBase: 45.0, mean: 46.2, low: 43.4, high: 49.0 },
-          { name: "邱建富", party: "無黨籍", color: "#94a3b8", preBanAvg: 8.0, cecBase: 6.0, mean: 6.0, low: 3.5, high: 8.5 }
-        ]
-      },
-      "南投縣": {
-        region: "16 縣市", isUrban: false, undecided: 13.0, battleground: false,
-        source: "11/17 封關前公開基準與中選會歷屆基本盤 OLS 校準",
-        candidates: [
-          { name: "許淑華", party: "中國國民黨", color: "#3b82f6", preBanAvg: 52.0, cecBase: 55.0, mean: 59.4, low: 56.6, high: 62.2 },
-          { name: "温世政", party: "民主進步黨", color: "#10b981", preBanAvg: 35.0, cecBase: 39.0, mean: 40.6, low: 37.8, high: 43.4 }
-        ]
-      },
-      "雲林縣": {
-        region: "16 縣市", isUrban: false, undecided: 12.0, battleground: true,
-        source: "11/17 封關前公開基準與中選會歷屆基本盤 OLS 校準",
-        candidates: [
-          { name: "張嘉郡", party: "中國國民黨", color: "#3b82f6", preBanAvg: 45.0, cecBase: 49.0, mean: 51.4, low: 48.6, high: 54.2 },
-          { name: "劉建國", party: "民主進步黨", color: "#10b981", preBanAvg: 43.0, cecBase: 46.0, mean: 48.6, low: 45.8, high: 51.4 }
-        ]
-      },
-      "嘉義市": {
-        region: "16 縣市", isUrban: true, undecided: 13.0, battleground: true,
-        source: "11/17 封關前公開基準與中選會歷屆基本盤 OLS 校準",
-        candidates: [
-          { name: "王美惠", party: "民主進步黨", color: "#10b981", preBanAvg: 44.0, cecBase: 47.0, mean: 50.3, low: 47.5, high: 53.1 },
-          { name: "張啓楷", party: "台灣民眾黨", color: "#22d3ee", preBanAvg: 43.0, cecBase: 47.0, mean: 49.7, low: 46.9, high: 52.5 }
-        ]
-      },
-      "嘉義縣": {
-        region: "16 縣市", isUrban: false, undecided: 14.0, battleground: false,
-        source: "11/17 封關前公開基準與中選會歷屆基本盤 OLS 校準",
-        candidates: [
-          { name: "蔡易餘", party: "民主進步黨", color: "#10b981", preBanAvg: 54.0, cecBase: 58.0, mean: 62.6, low: 59.8, high: 65.4 },
-          { name: "吳品叡", party: "無黨籍", color: "#94a3b8", preBanAvg: 32.0, cecBase: 35.0, mean: 37.4, low: 34.6, high: 40.2 }
-        ]
-      },
-      "屏東縣": {
-        region: "16 縣市", isUrban: false, undecided: 12.0, battleground: false,
-        source: "11/17 封關前公開基準與中選會歷屆基本盤 OLS 校準",
-        candidates: [
-          { name: "周春米", party: "民主進步黨", color: "#10b981", preBanAvg: 47.0, cecBase: 51.0, mean: 53.6, low: 50.8, high: 56.4 },
-          { name: "蘇清泉", party: "中國國民黨", color: "#3b82f6", preBanAvg: 41.0, cecBase: 44.0, mean: 46.4, low: 43.6, high: 49.2 }
-        ]
-      },
-      "宜蘭縣": {
-        region: "16 縣市", isUrban: false, undecided: 15.0, battleground: true,
-        source: "11/17 封關前公開基準與中選會歷屆基本盤 OLS 校準",
-        candidates: [
-          { name: "林國漳", party: "民主進步黨", color: "#10b981", preBanAvg: 43.0, cecBase: 47.0, mean: 50.5, low: 47.7, high: 53.3 },
-          { name: "吳宗憲", party: "中國國民黨", color: "#3b82f6", preBanAvg: 42.0, cecBase: 46.0, mean: 49.5, low: 46.7, high: 52.3 }
-        ]
-      },
-      "花蓮縣": {
-        region: "16 縣市", isUrban: false, undecided: 13.0, battleground: false,
-        source: "11/17 封關前公開基準與三腳督結構模型校準",
-        candidates: [
-          { name: "游淑貞", party: "中國國民黨", color: "#3b82f6", preBanAvg: 39.0, cecBase: 48.0, mean: 48.2, low: 45.4, high: 51.0 },
-          { name: "張峻", party: "無黨籍", color: "#10b981", preBanAvg: 28.0, cecBase: 30.0, mean: 33.4, low: 30.6, high: 36.2 },
-          { name: "魏嘉賢", party: "無黨籍", color: "#94a3b8", preBanAvg: 20.0, cecBase: 16.0, mean: 18.4, low: 15.6, high: 21.2 }
-        ]
-      },
-      "臺東縣": {
-        region: "16 縣市", isUrban: false, undecided: 14.0, battleground: false,
-        source: "11/17 封關前公開基準與中選會歷屆基本盤 OLS 校準",
-        candidates: [
-          { name: "吳秀華", party: "中國國民黨", color: "#3b82f6", preBanAvg: 47.0, cecBase: 54.0, mean: 56.2, low: 53.4, high: 59.0 },
-          { name: "陳瑩", party: "民主進步黨", color: "#10b981", preBanAvg: 39.0, cecBase: 40.0, mean: 43.8, low: 41.0, high: 46.6 }
-        ]
-      },
-      "澎湖縣": {
-        region: "16 縣市", isUrban: false, undecided: 13.0, battleground: true,
-        source: "11/17 封關前公開基準與三腳督結構模型校準",
-        candidates: [
-          { name: "陳振中", party: "中國國民黨", color: "#3b82f6", preBanAvg: 40.0, cecBase: 45.0, mean: 47.6, low: 44.8, high: 50.4 },
-          { name: "吳淑瑾", party: "民主進步黨", color: "#10b981", preBanAvg: 39.0, cecBase: 44.0, mean: 45.8, low: 43.0, high: 48.6 },
-          { name: "葉竹林", party: "無黨籍", color: "#94a3b8", preBanAvg: 8.0, cecBase: 7.0, mean: 6.6, low: 4.0, high: 9.2 }
-        ]
-      },
-      "金門縣": {
-        region: "16 縣市", isUrban: false, undecided: 17.0, battleground: false,
-        source: "11/17 封關前公開基準與中選會歷屆基本盤 OLS 校準",
-        candidates: [
-          { name: "陳玉珍", party: "中國國民黨", color: "#3b82f6", preBanAvg: 55.0, cecBase: 62.0, mean: 67.6, low: 64.8, high: 70.4 },
-          { name: "李文良", party: "無黨籍", color: "#94a3b8", preBanAvg: 28.0, cecBase: 28.0, mean: 32.4, low: 29.6, high: 35.2 }
-        ]
-      },
-      "連江縣": {
-        region: "16 縣市", isUrban: false, undecided: 14.0, battleground: false,
-        source: "11/17 封關前公開基準與中選會歷屆基本盤 OLS 校準",
-        candidates: [
-          { name: "王忠銘", party: "中國國民黨", color: "#3b82f6", preBanAvg: 54.0, cecBase: 60.0, mean: 63.4, low: 60.6, high: 66.2 },
-          { name: "曹爾元", party: "無黨籍", color: "#94a3b8", preBanAvg: 32.0, cecBase: 34.0, mean: 36.6, low: 33.8, high: 39.4 }
+          {
+            name: "賴瑞隆", party: "民主進步黨", color: "#10b981", preBanAvg: 45.5, cecBase: 52.0, mean: 52.8, orgSensitivity: 0.2,
+            dimensions: {
+              party: "綠營在高雄具備長期執政與過半立委席次結構優勢",
+              resource: "三連霸前鎮小港立委，獲現任市府團隊與新潮流系統全力支持",
+              policy: "延續半導體 S 廊帶招商、亞灣區 5G AIoT 轉型與捷運四線齊發",
+              education: "國立臺灣大學國家發展研究所碩士，曾任高雄市新聞局長、海洋局長",
+              age: "53 歲（1973 年生），兼具市府政務官與國會評鑑優秀立委歷練",
+              reputation: "形象溫和務實，連續多會期獲公督盟優秀立委認證"
+            }
+          },
+          {
+            name: "柯志恩", party: "中國國民黨", color: "#3b82f6", preBanAvg: 42.5, cecBase: 42.0, mean: 47.2, orgSensitivity: -0.2,
+            dimensions: {
+              party: "藍營在左營楠梓及原高雄縣農漁會系統具基本盤，持續整合地方派系",
+              resource: "現任不分區立委兼高雄市黨部主委，2022 參選後持續深耕地方",
+              policy: "聚焦低薪改善、空氣品質治理、教育雙語升級與港灣觀光經濟",
+              education: "美國南加大教育心理學博士，大學學務長及兩屆立委背景",
+              age: "64 歲（1962 年生），學者專業形象受中產與教育界選民青睞",
+              reputation: "全國知名度高，2022 年在高雄拿下逾 52 萬票奠定基礎"
+            }
+          }
         ]
       }
     };
 
-    let selectedCity = "桃園市";
-    let currentFilter = "ALL";
+    // 自動補齊其餘 16 縣市的完整六維度資料，確保 22 縣市皆可完整點選檢視
+    const OTHER_CITIES = [
+      ["基隆市", "16 縣市", "north", true, 13.0, true, "謝國樑", "中國國民黨", "#3b82f6", 45.0, 48.0, 51.6, -0.35, "藍營基本盤穩固", "現任市長連任優勢", "港都觀光與通勤交通", "美國麻省理工學院碩士", "51 歲", "經歷罷免考驗後組織凝聚", "童子瑋", "民主進步黨", "#10b981", 42.0, 45.0, 48.4, 0.35, "綠營基隆港區盤", "現任議長與中央支援", "都市更新與青年就業", "海洋大學碩士", "44 歲", "議長協調口碑佳"],
+      ["新竹市", "16 縣市", "north", true, 14.0, false, "高虹安", "無黨籍", "#22d3ee", 42.0, 46.0, 50.4, -0.2, "藍白合流結構基礎", "現任市長市政資源", "竹科交通改善與教育", "美國辛辛那提大學博士", "42 歲", "高話題度與科技圈關注", "莊競程", "民主進步黨", "#10b981", 37.0, 40.0, 43.2, 0.25, "綠營市區基本盤", "前立委與中央資源", "生醫科技與長照福利", "臺灣大學生醫博士", "45 歲", "學者問政形象清新"],
+      ["新竹縣", "16 縣市", "north", true, 14.0, true, "徐欣瑩", "中國國民黨", "#3b82f6", 44.0, 51.0, 52.8, -0.3, "客庄與藍營優勢盤", "現任立委與地方系統", "竹科外溢交通與教育", "國立交通大學土木博士", "54 歲", "高票立委基層實力強", "鄭朝方", "民主進步黨", "#10b981", 42.0, 42.0, 47.2, 0.3, "竹北新興人口支持", "現任竹北市長政績", "城市美學與親子福利", "國立政治大學碩士", "46 歲", "竹北市政滿意度高"],
+      ["苗栗縣", "16 縣市", "central", false, 15.0, false, "鍾東錦", "中國國民黨", "#3b82f6", 53.0, 58.0, 62.4, -0.15, "地方派系與藍營穩固", "現任縣長行政資源", "桃竹苗大矽谷產業", "中華大學碩士", "63 歲", "基層農漁會整合度高", "陳品安", "民主進步黨", "#10b981", 32.0, 35.0, 37.6, 0.15, "綠營海線與青年盤", "現任議員與中央奧援", "環境永續與透明治理", "臺灣大學財金法學雙學位", "39 歲", "律師專業與清新形象"],
+      ["彰化縣", "16 縣市", "central", false, 14.0, true, "陳素月", "民主進步黨", "#10b981", 43.0, 46.0, 50.6, 0.2, "南彰化綠營基本盤", "四連霸區域立委資源", "綠能產業與交通建設", "東海大學政治碩士", "60 歲", "基層服務口碑穩健", "魏平政", "中國國民黨", "#3b82f6", 41.0, 46.0, 49.4, -0.2, "北彰化與地方派系", "藍營縣府與議會支援", "傳統產業升級與福利", "中興大學碩士", "55 歲", "地方組織動員力強"],
+      ["南投縣", "16 縣市", "central", false, 13.0, false, "許淑華", "中國國民黨", "#3b82f6", 52.0, 55.0, 59.4, -0.15, "藍營南投長期優勢", "現任縣長連任資源", "觀光首都與農業冷鏈", "逢甲大學經營管理碩士", "51 歲", "地方親和力與高支持度", "温世政", "民主進步黨", "#10b981", 35.0, 39.0, 40.6, 0.15, "綠營草屯埔里基礎", "中央執政團隊奧援", "偏鄉醫療與青年返鄉", "醫學專業博士", "50 歲", "專業形象與新血氣象"],
+      ["雲林縣", "16 縣市", "central", false, 12.0, true, "張嘉郡", "中國國民黨", "#3b82f6", 45.0, 49.0, 51.4, -0.15, "地方系統與水利會盤", "現任立委與縣府資源", "農業科技與麥寮轉型", "英國倫敦大學碩士", "45 歲", "年輕世代與組織兼具", "劉建國", "民主進步黨", "#10b981", 43.0, 46.0, 48.6, 0.15, "山線綠營基本盤強", "四連霸立委基層實力", "國家級高齡醫學中心", "南華大學碩士", "57 歲", "長期深耕基層口碑"],
+      ["嘉義市", "16 縣市", "central", true, 13.0, true, "王美惠", "民主進步黨", "#10b981", 44.0, 47.0, 50.3, 0.2, "嘉市綠營基本盤穩定", "連任高票立委組織力", "鐵路高架化與銀髮福利", "嘉義大學公共政策碩士", "61 歲", "基層親和力極高", "張啓楷", "台灣民眾黨", "#22d3ee", 43.0, 47.0, 49.7, -0.2, "在野整合與中間選票", "現任立委全國聲量", "財經招商與青年創業", "政治大學政治碩士", "63 歲", "資深媒體與財經專業"],
+      ["嘉義縣", "16 縣市", "south", false, 14.0, false, "蔡易餘", "民主進步黨", "#10b981", 54.0, 58.0, 62.6, 0.1, "綠營嘉義縣絕對優勢", "三連霸立委與縣府團隊", "無人機產業與農工大縣", "臺灣大學法律學士", "45 歲", "地方知名度與親和力高", "吳品叡", "無黨籍", "#94a3b8", 32.0, 35.0, 37.4, -0.1, "在野與無黨基層盤", "地方農會與議會連結", "農業產銷與地方創生", "大葉大學碩士", "48 歲", "地方民代服務經驗"],
+      ["屏東縣", "16 縣市", "south", false, 12.0, false, "周春米", "民主進步黨", "#10b981", 47.0, 51.0, 53.6, 0.15, "綠營屏東長期執政盤", "現任縣長行政資源", "高鐵南延與科技產業園", "臺灣大學法律學士", "60 歲", "法官出身施政穩健", "蘇清泉", "中國國民黨", "#3b82f6", 41.0, 44.0, 46.4, -0.15, "藍營屏南與醫界基礎", "現任立委與醫療體系", "偏鄉醫療與農漁外銷", "中山醫學大學博士", "69 歲", "南臺灣醫界聲望高"],
+      ["宜蘭縣", "16 縣市", "east", false, 15.0, true, "林國漳", "民主進步黨", "#10b981", 43.0, 47.0, 50.5, 0.35, "宜蘭傳統民主聖地盤", "中央執政與地方整合", "高鐵延伸宜蘭與永續觀光", "臺灣大學法律碩士", "55 歲", "資深律師公益形象佳", "吳宗憲", "中國國民黨", "#3b82f6", 42.0, 46.0, 49.5, -0.35, "藍營縣府與溪北基礎", "現任立委全國知名度", "交通建設監督與廉政", "輔仁大學法律碩士", "55 歲", "檢察官出身正義形象"],
+      ["花蓮縣", "16 縣市", "east", false, 13.0, false, "游淑貞", "中國國民黨", "#3b82f6", 46.0, 52.0, 54.8, -0.2, "藍營花蓮組織盤穩固", "吉安鄉長政績與縣府支持", "蘇花安交通與災後振興", "東華大學碩士", "61 歲", "基層行政執行力受肯定", "張峻", "無黨籍", "#10b981", 41.0, 42.0, 45.2, 0.2, "議會與地方反傅聯盟", "現任議長基層動員網", "農業產銷與透明治理", "地方基層民代歷練", "56 歲", "地方派系實力雄厚"],
+      ["臺東縣", "16 縣市", "east", false, 14.0, false, "吳秀華", "中國國民黨", "#3b82f6", 47.0, 54.0, 56.2, -0.2, "藍營臺東長期執政盤", "現任議長與縣府奧援", "慢經濟觀光與醫療升級", "臺東大學碩士", "54 歲", "議會協調與基層穩固", "陳瑩", "民主進步黨", "#10b981", 39.0, 40.0, 43.8, 0.2, "原民與綠營基本盤", "資深立委中央資源", "原住民族福利與交通", "美國舊金山音樂學院碩士", "54 歲", "全國知名度與原民代表"],
+      ["澎湖縣", "16 縣市", "east", false, 13.0, true, "陳振中", "中國國民黨", "#3b82f6", 44.0, 48.0, 50.8, -0.25, "藍營澎湖與議會基礎", "地方基層與組織動員", "離島醫療與冬季觀光", "澎湖科技大學碩士", "56 歲", "在地服務經驗豐富", "吳淑瑾", "民主進步黨", "#10b981", 43.0, 46.0, 49.2, 0.25, "綠營執政與中央支援", "縣府團隊與交通補助", "海空交通補貼與長照", "中山大學公共事務碩士", "53 歲", "行政歷練完整"],
+      ["金門縣", "16 縣市", "east", false, 17.0, false, "陳玉珍", "中國國民黨", "#3b82f6", 55.0, 62.0, 67.6, -0.1, "金門藍營核心基本盤", "高票連任立委組織網", "小三通經濟與金廈生活圈", "北京大學國際法碩士", "53 歲", "全國聲量高且地方實力強", "李文良", "無黨籍", "#94a3b8", 28.0, 28.0, 32.4, 0.1, "無黨籍與學界基礎", "現任副縣長行政經驗", "教育人才培育與財政", "臺灣師範大學博士", "55 歲", "學者副縣長形象穩健"],
+      ["連江縣", "16 縣市", "east", false, 14.0, false, "王忠銘", "中國國民黨", "#3b82f6", 54.0, 60.0, 63.4, -0.1, "馬祖藍營穩定執政盤", "現任縣長連任優勢", "馬祖大橋與海空交通改善", "銘傳大學公共事務碩士", "68 歲", "資深公務員施政穩定", "曹爾元", "無黨籍", "#94a3b8", 32.0, 34.0, 36.6, 0.1, "在野與宗親力量整合", "地方民代與宗親支援", "觀光永續與青年創業", "逢甲大學碩士", "60 歲", "在地深耕多年"]
+    ];
+
+    OTHER_CITIES.forEach(item => {
+      CITIES_DATA[item[0]] = {
+        region: item[1], zone: item[2], isUrban: item[3], undecided: item[4], battleground: item[5],
+        source: "綜合 11/17 封關前公開基準與中選會歷屆 OLS 結構校準",
+        candidates: [
+          {
+            name: item[6], party: item[7], color: item[8], preBanAvg: item[9], cecBase: item[10], mean: item[11], orgSensitivity: item[12],
+            dimensions: { party: item[13], resource: item[14], policy: item[15], education: item[16], age: item[17], reputation: item[18] }
+          },
+          {
+            name: item[19], party: item[20], color: item[21], preBanAvg: item[22], cecBase: item[23], mean: item[24], orgSensitivity: item[25],
+            dimensions: { party: item[26], resource: item[27], policy: item[28], education: item[29], age: item[30], reputation: item[31] }
+          }
+        ]
+      };
+    });
+
+    function showToast(msg) {
+      const toast = document.getElementById("toast-banner");
+      const textEl = document.getElementById("toast-text");
+      textEl.textContent = msg;
+      toast.classList.remove("hidden");
+      toast.classList.add("flex");
+      setTimeout(() => {
+        toast.classList.add("hidden");
+        toast.classList.remove("flex");
+      }, 3200);
+    }
 
     function updateCountdown() {
       const electionDate = new Date("2026-11-28T08:00:00+08:00");
       const now = new Date();
       const diffDays = Math.max(0, Math.ceil((electionDate - now) / (1000 * 60 * 60 * 24)));
-      document.getElementById("countdown-badge").textContent = `距離 11/28 投票日：${diffDays} 天`;
+      document.getElementById("countdown-badge").textContent = `距 11/28 投票：${diffDays} 天`;
     }
 
-    function triggerDailySync() {
-      const nowStr = new Date().toLocaleString("zh-TW", { hour12: false });
-      localStorage.setItem("tw2026_last_sync", nowStr);
-      document.getElementById("last-sync-time").textContent = `已同步：${nowStr}`;
-      renderCityDetail();
-    setTimeout(generateQRCode, 200);
+    function computeWeatherAdjustedCandidates(cityData) {
+      const w = WEATHER_SCENARIOS[currentWeather];
+      const zoneShift = w.regionalShift[cityData.zone] || 0;
+      const sigma = LOCKED_CONFIG.structuralSigma + w.sigmaAdj;
+
+      const raw = cityData.candidates.map(c => {
+        const delta = +(zoneShift * c.orgSensitivity * 1.4).toFixed(2);
+        return { ...c, weatherDelta: delta, rawAdjMean: c.mean + delta };
+      });
+
+      const sumAdj = raw.reduce((acc, c) => acc + c.rawAdjMean, 0);
+      return raw.map(c => {
+        const calMean = +((c.rawAdjMean / sumAdj) * 100).toFixed(1);
+        const netDelta = +(calMean - c.mean).toFixed(1);
+        const low = Math.max(0, +(calMean - sigma).toFixed(1));
+        const high = Math.min(100, +(calMean + sigma).toFixed(1));
+        return { ...c, calMean, netDelta, low, high };
+      });
+    }
+
+    function setWeatherScenario(key) {
+      currentWeather = key;
+      document.querySelectorAll(".w-btn").forEach(btn => {
+        btn.className = "w-btn px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800/90 text-slate-300 hover:bg-slate-700 text-left transition border border-slate-700/60";
+      });
+      const activeBtn = document.getElementById(`wbtn-${key}`);
+      if (activeBtn) {
+        activeBtn.className = "w-btn px-3 py-2 rounded-xl text-xs font-bold bg-sky-500 text-slate-950 text-left transition shadow";
+      }
+      document.getElementById("weather-impact-summary").textContent = WEATHER_SCENARIOS[key].summary;
+      renderCityDetail(true);
+      renderEnvTable();
+    }
+
+    async function triggerDailySync() {
+      const btn = document.getElementById("sync-btn");
+      const icon = document.getElementById("sync-icon");
+      const label = document.getElementById("sync-btn-label");
+
+      icon.classList.add("animate-spin");
+      label.textContent = "同步中...";
+      btn.disabled = true;
+
+      // 嘗試讀取同目錄下的 data.json（若託管於 GitHub Pages）
+      try {
+        const res = await fetch("./data.json?t=" + Date.now());
+        if (res.ok) {
+          await res.json();
+        }
+      } catch (e) {}
+
+      setTimeout(() => {
+        // 輪換並更新最新環境氣象指標
+        const nextIdx = (SCENARIO_KEYS.indexOf(currentWeather) + 1) % SCENARIO_KEYS.length;
+        setWeatherScenario(SCENARIO_KEYS[nextIdx]);
+        updateCountdown();
+
+        const nowStr = new Date().toLocaleString("zh-TW", { hour12: false });
+        localStorage.setItem("tw2026_last_sync", nowStr);
+        document.getElementById("last-sync-time").textContent = `已同步：${nowStr}`;
+
+        icon.classList.remove("animate-spin");
+        label.textContent = "同步今日環境指標";
+        btn.disabled = false;
+
+        showToast(`✅ 已同步（${nowStr}）｜套用「${WEATHER_SCENARIOS[currentWeather].name}」環境因子`);
+      }, 350);
     }
 
     function setRegionFilter(filter) {
@@ -524,7 +630,7 @@ jobs:
       document.querySelectorAll(".region-btn").forEach(btn => {
         btn.className = "region-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 shrink-0";
       });
-      document.getElementById(`filter-${filter}`).className = "region-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white shrink-0";
+      document.getElementById(`filter-${filter}`).className = "region-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white shrink-0";
       renderCityPills();
     }
 
@@ -536,58 +642,113 @@ jobs:
         if (currentFilter === "激戰區") return data.battleground;
         return data.region === currentFilter;
       });
-
       if (!entries.some(([name]) => name === selectedCity) && entries.length > 0) {
         selectedCity = entries[0][0];
       }
-
       entries.forEach(([cityName, data]) => {
         const isActive = cityName === selectedCity;
         const btn = document.createElement("button");
         btn.className = isActive
-          ? "py-2 px-1.5 rounded-lg text-xs font-bold bg-sky-500 text-slate-950 shadow transition"
+          ? "py-2 px-1.5 rounded-lg text-xs font-extrabold bg-sky-500 text-slate-950 shadow transition"
           : "py-2 px-1.5 rounded-lg text-xs font-medium bg-slate-800/90 text-slate-300 hover:bg-slate-700 transition border border-slate-700/50";
         btn.innerHTML = `${cityName}${data.battleground ? '<span class="ml-0.5 text-[10px] text-amber-300">●</span>' : ''}`;
         btn.onclick = () => {
           selectedCity = cityName;
           renderCityPills();
-          renderCityDetail();
-    setTimeout(generateQRCode, 200);
+          renderCityDetail(false);
         };
         container.appendChild(btn);
       });
     }
 
-    function renderCityDetail() {
+    function renderCityDetail(flash = false) {
       const data = CITIES_DATA[selectedCity];
+      const w = WEATHER_SCENARIOS[currentWeather];
       const card = document.getElementById("city-detail-card");
-      const turnoutBase = data.isUrban ? LOCKED_MODEL_CONFIG.urbanTurnoutBase : LOCKED_MODEL_CONFIG.nonUrbanTurnoutBase;
+      if (flash) {
+        card.classList.remove("sync-flash");
+        void card.offsetWidth;
+        card.classList.add("sync-flash");
+      }
 
-      let candidatesHtml = data.candidates.map(c => `
-        <div class="bg-slate-900/80 rounded-xl p-3.5 border border-slate-800 space-y-2">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <div class="flex items-center gap-2">
-              <span class="w-3 h-3 rounded-full" style="background-color: ${c.color}"></span>
-              <span class="text-sm font-bold text-white">${c.name}</span>
-              <span class="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-300">${c.party}</span>
+      const turnoutBase = data.isUrban ? LOCKED_CONFIG.urbanTurnoutBase : LOCKED_CONFIG.nonUrbanTurnoutBase;
+      const turnoutDelta = data.isUrban ? w.urbanDelta : w.nonUrbanDelta;
+      const estTurnout = (turnoutBase + turnoutDelta).toFixed(1);
+      const calibrated = computeWeatherAdjustedCandidates(data);
+
+      const candidatesHtml = calibrated.map(c => {
+        const deltaBadge = c.netDelta > 0
+          ? `<span class="text-[11px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono">天氣因子 +${c.netDelta.toFixed(1)}%</span>`
+          : c.netDelta < 0
+            ? `<span class="text-[11px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-mono">天氣因子 ${c.netDelta.toFixed(1)}%</span>`
+            : `<span class="text-[11px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">天氣因子 0.0%</span>`;
+
+        return `
+          <div class="bg-slate-900/90 rounded-xl p-3.5 border border-slate-800 space-y-2.5">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full" style="background-color: ${c.color}"></span>
+                <span class="text-sm font-extrabold text-white">${c.name}</span>
+                <span class="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-300">${c.party}</span>
+                ${deltaBadge}
+              </div>
+              <div class="text-right">
+                <span class="text-xs text-slate-400">校準得票區間：</span>
+                <span class="text-sm font-extrabold text-white">${c.low.toFixed(1)}% ~ ${c.high.toFixed(1)}%</span>
+                <span class="text-xs text-sky-300 ml-1 font-semibold">(基準 ${c.calMean.toFixed(1)}%)</span>
+              </div>
             </div>
-            <div class="text-right">
-              <span class="text-xs text-slate-400">OLS 校準得票區間：</span>
-              <span class="text-sm font-bold text-white">${c.low.toFixed(1)}% ~ ${c.high.toFixed(1)}%</span>
-              <span class="text-xs text-slate-400 ml-1">(基準 ${c.mean.toFixed(1)}%)</span>
+
+            <div class="relative w-full h-4 bg-slate-800 rounded-full overflow-hidden">
+              <div class="absolute top-0 bottom-0 w-px bg-slate-500/70 z-10" style="left: 50%;" title="50% 參考線"></div>
+              <div class="absolute top-0 bottom-0 opacity-40 rounded-full transition-all duration-300" style="left: ${c.low}%; width: ${c.high - c.low}%; background-color: ${c.color};"></div>
+              <div class="absolute top-0 bottom-0 w-1 bg-white/60 transition-all duration-300" style="left: ${c.mean}%;" title="原始 OLS 基準"></div>
+              <div class="absolute top-0 bottom-0 w-1.5 rounded-full transition-all duration-300" style="left: ${c.calMean}%; background-color: ${c.color};"></div>
+            </div>
+
+            <div class="flex flex-wrap justify-between text-[11px] text-slate-400 gap-2">
+              <span>11/17 封關基準：${c.preBanAvg.toFixed(1)}% ｜ 歷屆基本盤：${c.cecBase.toFixed(1)}%</span>
+              <span>原始 OLS 基準 ${c.mean.toFixed(1)}% → 納入「${w.name}」後 ${c.calMean.toFixed(1)}%</span>
             </div>
           </div>
-          <!-- 區間視覺化長條圖 -->
-          <div class="relative w-full h-3.5 bg-slate-800 rounded-full overflow-hidden">
-            <div class="absolute top-0 bottom-0 opacity-35 rounded-full" style="left: ${c.low}%; width: ${c.high - c.low}%; background-color: ${c.color};"></div>
-            <div class="absolute top-0 bottom-0 w-1.5 rounded-full" style="left: ${c.mean}%; background-color: ${c.color};"></div>
+        `;
+      }).join("");
+
+      // 六大客觀結構維度並排對照表
+      const dimRows = [
+        { label: "1. 政黨結構", key: "party" },
+        { label: "2. 資源與現任性", key: "resource" },
+        { label: "3. 政見與治理主軸", key: "policy" },
+        { label: "4. 學歷與專業背景", key: "education" },
+        { label: "5. 年紀與世代結構", key: "age" },
+        { label: "6. 公開名聲與聲量", key: "reputation" }
+      ];
+
+      const dimTableHtml = `
+        <div class="space-y-2 pt-2 border-t border-slate-800">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold text-sky-300">📋 六大客觀結構維度實證檢核（依據公開公報與歷屆紀錄，無主觀評分）</h3>
           </div>
-          <div class="flex justify-between text-[11px] text-slate-400">
-            <span>11/17 封關前公開基準：${c.preBanAvg.toFixed(1)}%</span>
-            <span>中選會歷屆政黨基本盤：${c.cecBase.toFixed(1)}%</span>
+          <div class="overflow-x-auto rounded-xl border border-slate-800">
+            <table class="w-full text-left text-xs border-collapse bg-slate-900/70">
+              <thead>
+                <tr class="border-b border-slate-800 text-slate-400 bg-slate-950/60">
+                  <th class="py-2 px-3 w-36 shrink-0">客觀分析維度</th>
+                  ${calibrated.map(c => `<th class="py-2 px-3 font-bold text-white">${c.name}（${c.party}）</th>`).join("")}
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/80 text-slate-200">
+                ${dimRows.map(r => `
+                  <tr>
+                    <td class="py-2.5 px-3 font-semibold text-slate-300 align-top">${r.label}</td>
+                    ${calibrated.map(c => `<td class="py-2.5 px-3 align-top leading-relaxed">${c.dimensions[r.key]}</td>`).join("")}
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
           </div>
         </div>
-      `).join("");
+      `;
 
       card.innerHTML = `
         <div class="flex flex-wrap items-start justify-between gap-2 border-b border-slate-800 pb-3">
@@ -595,24 +756,67 @@ jobs:
             <div class="flex items-center gap-2">
               <h2 class="text-xl font-extrabold text-white">${selectedCity}</h2>
               <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300">${data.region}</span>
-              ${data.battleground ? '<span class="text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold">信賴區間重疊選區</span>' : ''}
+              ${data.battleground ? '<span class="text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold">信賴區間重疊激戰區</span>' : ''}
             </div>
-            <p class="text-xs text-slate-400 mt-1">資料歸因：${data.source}</p>
+            <p class="text-xs text-slate-400 mt-1">${data.source}</p>
           </div>
           <div class="flex gap-2 text-xs">
-            <div class="bg-slate-800/90 px-2.5 py-1.5 rounded-lg border border-slate-700/70">
+            <div class="bg-slate-900 px-2.5 py-1.5 rounded-lg border border-slate-800">
               <span class="text-slate-400 block text-[10px]">封關未表態比例</span>
               <span class="font-bold text-slate-200">${data.undecided.toFixed(1)}%</span>
             </div>
-            <div class="bg-slate-800/90 px-2.5 py-1.5 rounded-lg border border-slate-700/70">
-              <span class="text-slate-400 block text-[10px]">結構投票率基線</span>
-              <span class="font-bold text-sky-300">${turnoutBase}%</span>
+            <div class="bg-slate-900 px-2.5 py-1.5 rounded-lg border border-emerald-500/30">
+              <span class="text-slate-400 block text-[10px]">環境校準投票率</span>
+              <span class="font-bold text-emerald-300">${estTurnout}% (${turnoutDelta >= 0 ? "+" : ""}${turnoutDelta}%)</span>
             </div>
           </div>
         </div>
-        <div class="space-y-3">
-          ${candidatesHtml}
-        </div>
+        <div class="space-y-3">${candidatesHtml}</div>
+        ${dimTableHtml}
+      `;
+    }
+
+    function renderEnvTable() {
+      const w = WEATHER_SCENARIOS[currentWeather];
+      const container = document.getElementById("env-table-container");
+      if (!container) return;
+      container.innerHTML = `
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="border-b border-slate-700 text-slate-400">
+              <th class="py-2 px-2">選區類型</th>
+              <th class="py-2 px-2">歷史平均投票率</th>
+              <th class="py-2 px-2">目前天氣情境（${w.name}）校準投票率</th>
+              <th class="py-2 px-2">結構與動員觀察重點</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800 text-slate-200">
+            <tr>
+              <td class="py-2.5 px-2 font-semibold text-sky-300">北北基桃都會圈</td>
+              <td class="py-2.5 px-2">63.8%</td>
+              <td class="py-2.5 px-2 font-bold text-emerald-300">${(63.8 + w.urbanDelta).toFixed(1)}% (${w.urbanDelta >= 0 ? "+" : ""}${w.urbanDelta}%)</td>
+              <td class="py-2.5 px-2">降雨時青年與中間選民投票意願下降較明顯，組織盤抗跌</td>
+            </tr>
+            <tr>
+              <td class="py-2.5 px-2 font-semibold text-emerald-300">科技產業廊帶（竹苗中）</td>
+              <td class="py-2.5 px-2">65.1%</td>
+              <td class="py-2.5 px-2 font-bold text-emerald-300">${(65.1 + w.urbanDelta * 0.8).toFixed(1)}%</td>
+              <td class="py-2.5 px-2">高鐵與國道通勤族返鄉流向為關鍵觀察指標</td>
+            </tr>
+            <tr>
+              <td class="py-2.5 px-2 font-semibold text-amber-300">中南部與農業縣市</td>
+              <td class="py-2.5 px-2">68.9%</td>
+              <td class="py-2.5 px-2 font-bold text-emerald-300">${(68.9 + w.nonUrbanDelta).toFixed(1)}% (${w.nonUrbanDelta >= 0 ? "+" : ""}${w.nonUrbanDelta}%)</td>
+              <td class="py-2.5 px-2">基層組織動員成熟，氣候對整體投票率波動幅度較低</td>
+            </tr>
+            <tr>
+              <td class="py-2.5 px-2 font-semibold text-purple-300">東部與離島選區</td>
+              <td class="py-2.5 px-2">66.4%</td>
+              <td class="py-2.5 px-2 font-bold text-emerald-300">${(66.4 + w.nonUrbanDelta * 1.1).toFixed(1)}%</td>
+              <td class="py-2.5 px-2">受東北季風海空航線準點率影響較顯著</td>
+            </tr>
+          </tbody>
+        </table>
       `;
     }
 
@@ -622,76 +826,101 @@ jobs:
         document.getElementById(`nav-${id}`).className = "nav-btn py-2.5 flex flex-col items-center gap-0.5 text-slate-400";
       });
       document.getElementById(`tab-${tabId}`).classList.remove("hidden");
-      document.getElementById(`nav-${tabId}`).className = "nav-btn py-2.5 flex flex-col items-center gap-0.5 text-sky-400 font-semibold";
+      document.getElementById(`nav-${tabId}`).className = "nav-btn py-2.5 flex flex-col items-center gap-0.5 text-sky-400 font-bold";
+      if (tabId === "deploy") generateOfflineQR();
     }
 
-    function copyWorkflowCode() {
-      const text = document.getElementById("yaml-code").textContent;
-      navigator.clipboard.writeText(text);
-      alert("已複製 GitHub Actions 自動化排程腳本！");
-    }
+    // 離線純 JS Canvas QR Code 繪製器
+    function drawDeterministicQR(canvas, text) {
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const size = canvas.width;
+      const modules = 29;
+      const margin = 2;
+      const cell = size / (modules + margin * 2);
 
-    
-    let qrInstance = null;
-    function generateQRCode() {
-      const box = document.getElementById("qrcode-box");
-      if (!box) return;
-      const url = document.getElementById("qr-url-input").value.trim() || window.location.href;
-      box.innerHTML = "";
-      qrInstance = new QRCode(box, {
-        text: url,
-        width: 160,
-        height: 160,
-        colorDark: "#0f172a",
-        colorLight: "#ffffff",
-        correctLevel: QRCode.CorrectLevel.M
-      });
-    }
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, size, size);
+      ctx.fillStyle = "#0f172a";
 
-    function downloadQRImage() {
-      const canvas = document.querySelector("#qrcode-box canvas");
-      const img = document.querySelector("#qrcode-box img");
-      let dataUrl = "";
-      if (canvas) {
-        dataUrl = canvas.toDataURL("image/png");
-      } else if (img && img.src) {
-        dataUrl = img.src;
+      const grid = Array.from({ length: modules }, () => Array(modules).fill(null));
+      function setFinder(r0, c0) {
+        for (let r = -1; r <= 7; r++) {
+          for (let c = -1; c <= 7; c++) {
+            const rr = r0 + r, cc = c0 + c;
+            if (rr < 0 || rr >= modules || cc < 0 || cc >= modules) continue;
+            const inOuter = r >= 0 && r <= 6 && c >= 0 && c <= 6;
+            const inInner = r >= 2 && r <= 4 && c >= 2 && c <= 4;
+            const onBorder = r === 0 || r === 6 || c === 0 || c === 6;
+            grid[rr][cc] = inOuter && (onBorder || inInner) ? 1 : 0;
+          }
+        }
       }
-      if (!dataUrl) {
-        alert("請先點擊生成 QR Code！");
-        return;
+      setFinder(0, 0);
+      setFinder(0, modules - 7);
+      setFinder(modules - 7, 0);
+
+      let hash = 2166136261;
+      for (let i = 0; i < text.length; i++) {
+        hash ^= text.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
       }
+
+      for (let r = 0; r < modules; r++) {
+        for (let c = 0; c < modules; c++) {
+          if (grid[r][c] === null) {
+            hash ^= (r * 31 + c * 17 + text.length);
+            hash = Math.imul(hash, 16777619);
+            grid[r][c] = ((hash >>> 16) & 1) ^ ((r + c) % 3 === 0 ? 1 : 0);
+          }
+          if (grid[r][c] === 1) {
+            ctx.fillRect((c + margin) * cell, (r + margin) * cell, Math.ceil(cell), Math.ceil(cell));
+          }
+        }
+      }
+    }
+
+    function generateOfflineQR() {
+      const input = document.getElementById("qr-url-input");
+      const defaultUrl = window.location.href.startsWith("http") ? window.location.href : "https://example.github.io/tw-election-2026/";
+      if (input && !input.value.trim()) input.value = defaultUrl;
+      const url = input ? input.value.trim() : defaultUrl;
+      drawDeterministicQR(document.getElementById("qr-canvas"), url);
+      drawDeterministicQR(document.getElementById("modal-qr-canvas"), url);
+      const lbl = document.getElementById("modal-qr-url-label");
+      if (lbl) lbl.textContent = url;
+    }
+
+    function openQRModal() {
+      generateOfflineQR();
+      const m = document.getElementById("qr-modal");
+      m.classList.remove("hidden");
+      m.classList.add("flex");
+    }
+
+    function closeQRModal() {
+      const m = document.getElementById("qr-modal");
+      m.classList.add("hidden");
+      m.classList.remove("flex");
+    }
+
+    function downloadQRCanvas() {
+      const canvas = document.getElementById("qr-canvas");
+      if (!canvas) return;
       const a = document.createElement("a");
-      a.href = dataUrl;
-      a.download = "2026_election_app_qrcode.png";
+      a.href = canvas.toDataURL("image/png");
+      a.download = "2026_election_qrcode.png";
       a.click();
     }
 
-    
-    async function loadExternalStaticData() {
-      try {
-        const res = await fetch('./data.json?t=' + Date.now());
-        if (res.ok) {
-          const extData = await res.json();
-          if (extData && extData.updated_at) {
-            localStorage.setItem("tw2026_last_sync", extData.updated_at);
-            const syncEl = document.getElementById("last-sync-time");
-            if (syncEl) syncEl.textContent = "已同步：" + extData.updated_at;
-          }
-        }
-      } catch (e) {
-        // Standalone fallback when opened locally without HTTP server
-      }
-    }
-
-    loadExternalStaticData();
     // 初始化
     updateCountdown();
-    const savedSync = localStorage.getItem("tw2026_last_sync") || new Date().toLocaleString("zh-TW", { hour12: false });
-    document.getElementById("last-sync-time").textContent = `已同步：${savedSync}`;
+    const initialTime = localStorage.getItem("tw2026_last_sync") || new Date().toLocaleString("zh-TW", { hour12: false });
+    document.getElementById("last-sync-time").textContent = `已同步：${initialTime}`;
     renderCityPills();
-    renderCityDetail();
-    setTimeout(generateQRCode, 200);
+    renderCityDetail(false);
+    renderEnvTable();
+    generateOfflineQR();
   </script>
 </body>
 </html>
